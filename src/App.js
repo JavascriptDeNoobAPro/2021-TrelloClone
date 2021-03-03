@@ -1,29 +1,18 @@
 import React, { useState } from "react";
 import uuid from "react-uuid";
-import List from "./components/List/List";
-import store from "./utils/store";
-import StoreApi from "./utils/storeApi";
-import InputContainer from "./components/Input/InputContainer";
+import contextAPI from "./contextAPI";
 import { makeStyles } from "@material-ui/core/styles";
 import { DragDropContext, Droppable } from "react-beautiful-dnd";
-
-const useStyle = makeStyles((theme) => ({
-  root: {
-    minHeight: "100vh",
-    background: "green",
-    width: "100%",
-    overflowY: "auto",
-  },
-  listContainer: {
-    display: "flex",
-  },
-}));
+import TrelloList from "./components/TrelloList";
+import AddCardListTitle from "./components/AddCardListTitle";
+import mockData from "./mockData";
+import background_image from "./images/Photo_by_XPS_Unsplash.jpg";
 
 export default function App() {
-  const [data, setData] = useState(store);
+  const [data, setData] = useState(mockData);
 
   const classes = useStyle();
-  const addMoreCard = (title, listId) => {
+  const addCard = (title, listId) => {
     console.log(title, listId);
 
     const newCardId = uuid();
@@ -35,45 +24,43 @@ export default function App() {
     const list = data.lists[listId];
     list.cards = [...list.cards, newCard];
 
-    const newState = {
+    setData({
       ...data,
       lists: {
         ...data.lists,
         [listId]: list,
       },
-    };
-    setData(newState);
+    });
   };
 
-  const addMoreList = (title) => {
+  const addList = (title) => {
     const newListId = uuid();
     const newList = {
       id: newListId,
       title,
       cards: [],
     };
-    const newState = {
+
+    setData({
       listIds: [...data.listIds, newListId],
       lists: {
         ...data.lists,
         [newListId]: newList,
       },
-    };
-    setData(newState);
+    });
   };
 
   const updateListTitle = (title, listId) => {
     const list = data.lists[listId];
     list.title = title;
 
-    const newState = {
+    setData({
       ...data,
       lists: {
         ...data.lists,
         [listId]: list,
       },
-    };
-    setData(newState);
+    });
   };
 
   const onDragEnd = (result) => {
@@ -99,52 +86,66 @@ export default function App() {
     if (source.droppableId === destination.droppableId) {
       sourceList.cards.splice(source.index, 1);
       destinationList.cards.splice(destination.index, 0, draggingCard);
-      const newSate = {
+
+      setData({
         ...data,
         lists: {
           ...data.lists,
           [sourceList.id]: destinationList,
         },
-      };
-      setData(newSate);
+      });
     } else {
       sourceList.cards.splice(source.index, 1);
       destinationList.cards.splice(destination.index, 0, draggingCard);
 
-      const newState = {
+      setData({
         ...data,
         lists: {
           ...data.lists,
           [sourceList.id]: sourceList,
           [destinationList.id]: destinationList,
         },
-      };
-      setData(newState);
+      });
     }
   };
 
   return (
-    <StoreApi.Provider value={{ addMoreCard, addMoreList, updateListTitle }}>
+    <contextAPI.Provider value={{ addCard, addList, updateListTitle }}>
       <div className={classes.root}>
         <DragDropContext onDragEnd={onDragEnd}>
-          <Droppable droppableId='app' type='list' direction='horizontal'>
+          <Droppable droppableId='123' type='list' direction='horizontal'>
             {(provided) => (
               <div
-                className={classes.listContainer}
+                className={classes.container}
                 ref={provided.innerRef}
                 {...provided.droppableProps}
               >
                 {data.listIds.map((listId, index) => {
                   const list = data.lists[listId];
-                  return <List list={list} key={listId} index={index} />;
+                  return <TrelloList list={list} key={listId} index={index} />;
                 })}
-                <InputContainer type='list' />
+                <AddCardListTitle type='list' />
                 {provided.placeholder}
               </div>
             )}
           </Droppable>
         </DragDropContext>
       </div>
-    </StoreApi.Provider>
+    </contextAPI.Provider>
   );
 }
+
+const useStyle = makeStyles((theme) => ({
+  root: {
+    minHeight: "100vh",
+    backgroundImage: `url(${background_image})`,
+    backgroundPosition: "center",
+    backgroundSize: "cover",
+    backgroundRepeat: "no-repeat",
+    width: "100%",
+    overflowY: "auto",
+  },
+  container: {
+    display: "flex",
+  },
+}));
